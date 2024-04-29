@@ -62,6 +62,7 @@ export interface ListProps<T> extends Omit<React.HTMLAttributes<any>, 'children'
    * `scrollWidth` will be used as the real width instead of container width.
    * When set, `virtual` will always be enabled.
    */
+  /* 长长的数据列表的宽度，默认和容器一样宽也就是没有横向滚动条 */
   scrollWidth?: number;
 
   styles?: {
@@ -134,7 +135,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   // ================================= MISC =================================
   const useVirtual = !!(virtual !== false && height && itemHeight);
   const containerHeight = React.useMemo(() =>  Object.values(heights.maps).reduce((total, curr) => total + curr, 0), [heights.id, heights.maps]);
-  const inVirtual = useVirtual && data && (Math.max(itemHeight * data.length, containerHeight) > height || !!scrollWidth);
+  const inVirtual = useVirtual && data && (Math.max(itemHeight * data.length, containerHeight) > height || Boolean(scrollWidth));
   const isRTL = direction === 'rtl';
 
   const mergedClassName = classNames(prefixCls, { [`${prefixCls}-rtl`]: isRTL }, className);
@@ -186,30 +187,13 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   // ========================== Visible Calculation =========================
   const {
+    /* 长长的数据列表的高度 */
     scrollHeight,
     start,
     end,
     offset: fillerOffset,
   } = React.useMemo(() => {
-    if (!useVirtual) {
-      return {
-        scrollHeight: undefined,
-        start: 0,
-        end: mergedData.length - 1,
-        offset: undefined,
-      };
-    }
-
-    // // Always use virtual scroll bar in avoid shaking
-    // console.log(inVirtual,fillerInnerRef.current?.offsetHeight,'inVirtual204')
-    // if (!inVirtual) {
-    //   return {
-    //     scrollHeight: fillerInnerRef.current?.offsetHeight || 0,
-    //     start: 0,
-    //     end: mergedData.length - 1,
-    //     offset: undefined,
-    //   };
-    // }
+    console.log(useVirtual,'useVirtual194')
 
     let itemTop = 0;
     let startIndex: number;
@@ -356,7 +340,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   const keepInHorizontalRange = (nextOffsetLeft: number) => {
     let tmpOffsetLeft = nextOffsetLeft;
-    const max = !!scrollWidth ? scrollWidth - size.width : 0;
+    const max = Boolean(scrollWidth) ? scrollWidth - size.width : 0;
     tmpOffsetLeft = Math.max(tmpOffsetLeft, 0);
     tmpOffsetLeft = Math.min(tmpOffsetLeft, max);
 
@@ -389,7 +373,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     useVirtual,
     isScrollAtTop,
     isScrollAtBottom,
-    !!scrollWidth,
+    Boolean(scrollWidth),
     onWheelDelta,
   );
 
@@ -526,10 +510,9 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   }
 
   const containerProps: React.HTMLAttributes<HTMLDivElement> = {};
-  if (isRTL) {
-    containerProps.dir = 'rtl';
-  }
-  console.log(style,componentStyle,'style527')
+
+  console.log(scrollWidth,offsetLeft,fillerOffset,'style527')
+
   return (<div
       style={{
         ...style,
@@ -550,15 +533,12 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
         >
           <Filler
             prefixCls={prefixCls}
+            innerProps={innerProps}
+            extra={extraContent}
+
             height={scrollHeight}
             offsetX={offsetLeft}
             offsetY={fillerOffset}
-            scrollWidth={scrollWidth}
-            onInnerResize={collectHeight}
-            // ref={fillerInnerRef}
-            innerProps={innerProps}
-            rtl={isRTL}
-            extra={extraContent}
           >
             {listChildren}
           </Filler>

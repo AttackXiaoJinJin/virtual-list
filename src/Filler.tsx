@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ResizeObserver from 'rc-resize-observer';
+// import ResizeObserver from 'rc-resize-observer';
 import classNames from 'classnames';
 
 export type InnerProps = Pick<React.HTMLAttributes<HTMLDivElement>, 'role' | 'id'>;
@@ -11,38 +11,25 @@ interface FillerProps {
   /** Set offset of visible items. Should be the top of start item position */
   offsetY?: number;
   offsetX?: number;
-
-  scrollWidth?: number;
-
   children: React.ReactNode;
-
-  onInnerResize?: () => void;
-
   innerProps?: InnerProps;
-
-  rtl: boolean;
-
   extra?: React.ReactNode;
 }
 
 /**
  * Fill component to provided the scroll content real height.
  */
-const Filler = React.forwardRef(
-  (
-    {
-      height,
-      offsetY,
-      offsetX,
-      children,
-      prefixCls,
-      onInnerResize,
-      innerProps,
-      rtl,
-      extra,
-    }: FillerProps,
-    ref: React.Ref<HTMLDivElement>,
-  ) => {
+function Filler({
+                  prefixCls,
+                  innerProps,
+                  extra,
+                  height,
+                  offsetY,
+                  offsetX,
+                  children,
+                }: FillerProps){
+
+
     let outerStyle: React.CSSProperties = {};
 
     let innerStyle: React.CSSProperties = {
@@ -61,25 +48,17 @@ const Filler = React.forwardRef(
       innerStyle = {
         ...innerStyle,
         transform: `translateY(${offsetY}px)`,
-        [rtl ? 'marginRight' : 'marginLeft']: -offsetX,
+        marginLeft: -offsetX,
         position: 'absolute',
         left: 0,
         right: 0,
         top: 0,
       };
     }
-    console.log(children,'innerStyle71')
 
     return (
       /*长长的数据列表*/
       <div style={outerStyle}>
-        {/*<ResizeObserver*/}
-        {/*  onResize={({ offsetHeight }) => {*/}
-        {/*    if (offsetHeight && onInnerResize) {*/}
-        {/*      onInnerResize();*/}
-        {/*    }*/}
-        {/*  }}*/}
-        {/*>*/}
           {/*已经渲染出的dom，比可视区域内多出一个item*/}
           <div
             style={innerStyle}
@@ -87,17 +66,14 @@ const Filler = React.forwardRef(
               // rc-virtual-list-holder-inner
               [`${prefixCls}-holder-inner`]: prefixCls,
             })}
-            // ref={ref}
             {...innerProps}
           >
             {children}
             {extra}
           </div>
-        {/*</ResizeObserver>*/}
       </div>
     );
-  },
-);
+}
 
 Filler.displayName = 'Filler';
 
