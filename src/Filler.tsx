@@ -68,28 +68,32 @@ const Filler = React.forwardRef(
         top: 0,
       };
     }
+    console.log(children,'innerStyle71')
 
     return (
+      /*长长的数据列表*/
       <div style={outerStyle}>
-        <ResizeObserver
-          onResize={({ offsetHeight }) => {
-            if (offsetHeight && onInnerResize) {
-              onInnerResize();
-            }
-          }}
-        >
+        {/*<ResizeObserver*/}
+        {/*  onResize={({ offsetHeight }) => {*/}
+        {/*    if (offsetHeight && onInnerResize) {*/}
+        {/*      onInnerResize();*/}
+        {/*    }*/}
+        {/*  }}*/}
+        {/*>*/}
+          {/*已经渲染出的dom，比可视区域内多出一个item*/}
           <div
             style={innerStyle}
             className={classNames({
+              // rc-virtual-list-holder-inner
               [`${prefixCls}-holder-inner`]: prefixCls,
             })}
-            ref={ref}
+            // ref={ref}
             {...innerProps}
           >
             {children}
             {extra}
           </div>
-        </ResizeObserver>
+        {/*</ResizeObserver>*/}
       </div>
     );
   },

@@ -24,6 +24,9 @@ export default function useHeights<T>(
     raf.cancel(collectRafRef.current);
   }
 
+  // sync同步
+  // 缓存每个viewElement的高度
+  /* 这个是在requestAnimationFrame内缓存viewport内所有的item高度 */
   function collectHeight(sync = false) {
     cancelRaf();
 
@@ -38,7 +41,7 @@ export default function useHeights<T>(
         }
       });
 
-      // Always trigger update mark to tell parent that should re-calculate heights when resized
+      // 当resized时需要通知父组件强制更新以重新计算高度
       setUpdatedMark((c) => c + 1);
     };
 

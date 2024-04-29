@@ -140,7 +140,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   const mergedClassName = classNames(prefixCls, { [`${prefixCls}-rtl`]: isRTL }, className);
   const mergedData = data || EMPTY_DATA;
   const componentRef = useRef<HTMLDivElement>();
-  const fillerInnerRef = useRef<HTMLDivElement>();
+  // const fillerInnerRef = useRef<HTMLDivElement>();
 
   // =============================== Item Key ===============================
 
@@ -200,15 +200,16 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       };
     }
 
-    // Always use virtual scroll bar in avoid shaking
-    if (!inVirtual) {
-      return {
-        scrollHeight: fillerInnerRef.current?.offsetHeight || 0,
-        start: 0,
-        end: mergedData.length - 1,
-        offset: undefined,
-      };
-    }
+    // // Always use virtual scroll bar in avoid shaking
+    // console.log(inVirtual,fillerInnerRef.current?.offsetHeight,'inVirtual204')
+    // if (!inVirtual) {
+    //   return {
+    //     scrollHeight: fillerInnerRef.current?.offsetHeight || 0,
+    //     start: 0,
+    //     end: mergedData.length - 1,
+    //     offset: undefined,
+    //   };
+    // }
 
     let itemTop = 0;
     let startIndex: number;
@@ -505,7 +506,11 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   let componentStyle: React.CSSProperties = null;
   if (height) {
-    componentStyle = { [fullHeight ? 'height' : 'maxHeight']: height, ...ScrollStyle };
+    componentStyle = {
+      [fullHeight ? 'height' : 'maxHeight']: height,
+      ...ScrollStyle,
+      border:'4px green solid'
+    };
 
     if (useVirtual) {
       componentStyle.overflowY = 'hidden';
@@ -524,9 +529,8 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   if (isRTL) {
     containerProps.dir = 'rtl';
   }
-
-  return (
-    <div
+  console.log(style,componentStyle,'style527')
+  return (<div
       style={{
         ...style,
         position: 'relative',
@@ -536,6 +540,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       {...restProps}
     >
       <ResizeObserver onResize={onHolderResize}>
+        {/*可视区域*/}
         <Component
           className={`${prefixCls}-holder`}
           style={componentStyle}
@@ -550,7 +555,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
             offsetY={fillerOffset}
             scrollWidth={scrollWidth}
             onInnerResize={collectHeight}
-            ref={fillerInnerRef}
+            // ref={fillerInnerRef}
             innerProps={innerProps}
             rtl={isRTL}
             extra={extraContent}
