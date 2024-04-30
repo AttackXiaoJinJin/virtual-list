@@ -182,7 +182,7 @@ const Demo = () => {
         <List<Item>
           data={data}
           data-id="list"
-          height={200}
+          height={250}
           itemHeight={20}
           itemKey="id"
           // disabled={animating}

@@ -118,8 +118,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   // ================================ Height ================================
   const [setInstanceRef, collectHeight, heights, heightUpdatedMark] = useHeights(
     getKey,
-    null,
-    null,
   );
 
   // ================================= MISC =================================
@@ -229,7 +227,14 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       end: endIndex,
       offsetY
     };
-  }, [inVirtual, useVirtual, offsetTop, data, heightUpdatedMark, height]);
+  }, [
+    inVirtual,
+    useVirtual,
+    data,
+    heightUpdatedMark,
+    height,
+    offsetTop,
+  ]);
 
   // rangeRef.current.start = start;
   // rangeRef.current.end = end;

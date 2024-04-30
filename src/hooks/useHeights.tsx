@@ -7,15 +7,13 @@ import CacheMap from '../utils/CacheMap';
 
 export default function useHeights<T>(
   getKey: GetKey<T>,
-  onItemAdd?: (item: T) => void,
-  onItemRemove?: (item: T) => void,
 ): [
   setInstanceRef: (item: T, instance: HTMLElement) => void,
   collectHeight: (sync?: boolean) => void,
   cacheMap: CacheMap,
-  updatedMark: number,
+  heightUpdatedMark: number,
 ] {
-  const [updatedMark, setUpdatedMark] = React.useState(0);
+  const [heightUpdatedMark, setUpdatedMark] = React.useState(0);
   const instanceRef = useRef(new Map<React.Key, HTMLElement>());
   const heightsRef = useRef(new CacheMap());
   const collectRafRef = useRef<number>();
@@ -27,6 +25,7 @@ export default function useHeights<T>(
   // sync同步
   // 缓存每个viewElement的高度
   /* 这个是在requestAnimationFrame内缓存viewport内所有的item高度 */
+  // 在requestAnimateFrame中更新rendered items高度
   function collectHeight(sync = false) {
     cancelRaf();
 
@@ -55,22 +54,11 @@ export default function useHeights<T>(
 
   function setInstanceRef(item: T, instance: HTMLElement) {
     const key = getKey(item);
-    const origin = instanceRef.current.get(key);
-
     if (instance) {
       instanceRef.current.set(key, instance);
       collectHeight();
     } else {
       instanceRef.current.delete(key);
-    }
-
-    // Instance changed
-    if (!origin !== !instance) {
-      if (instance) {
-        onItemAdd?.(item);
-      } else {
-        onItemRemove?.(item);
-      }
     }
   }
 
@@ -78,5 +66,5 @@ export default function useHeights<T>(
     return cancelRaf;
   }, []);
 
-  return [setInstanceRef, collectHeight, heightsRef.current, updatedMark];
+  return [setInstanceRef, collectHeight, heightsRef.current, heightUpdatedMark];
 }

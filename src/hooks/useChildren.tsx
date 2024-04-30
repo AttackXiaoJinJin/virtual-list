@@ -9,12 +9,14 @@ export default function useChildren<T>(
   end: number,
   scrollWidth: number,
   setInstanceRef: (item: T, element: HTMLElement) => void,
-  renderFunc: RenderFunc<T>,
+  children: RenderFunc<T>,
   getKey:GetKey<T>,
 ) {
+  /* 会多render一个item */
+  // use reduce
   return data.slice(start, end + 1).map((item, index) => {
     const eleIndex = start + index;
-    const node = renderFunc(item, eleIndex, {
+    const node = children(item, eleIndex, {
       style: {
         width: scrollWidth,
       },
@@ -22,7 +24,10 @@ export default function useChildren<T>(
 
     const key = getKey(item);
     return (
-      <Item key={key} setRef={(ele) => setInstanceRef(item, ele)}>
+      <Item key={key} setRef={(ele) => {
+        console.log(item,'item28')
+        setInstanceRef(item, ele)
+      }}>
         {node}
       </Item>
     );
