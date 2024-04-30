@@ -1,5 +1,5 @@
 import * as React from 'react';
-// import ResizeObserver from 'rc-resize-observer';
+import ResizeObserver from 'rc-resize-observer';
 import classNames from 'classnames';
 
 export type InnerProps = Pick<React.HTMLAttributes<HTMLDivElement>, 'role' | 'id'>;
@@ -13,7 +13,7 @@ interface FillerProps {
   offsetX?: number;
   children: React.ReactNode;
   innerProps?: InnerProps;
-  extra?: React.ReactNode;
+  collectHeight: () => void;
 }
 
 /**
@@ -22,11 +22,11 @@ interface FillerProps {
 function Filler({
                   prefixCls,
                   innerProps,
-                  extra,
                   height,
                   offsetY,
                   offsetX,
                   children,
+                  collectHeight
                 }: FillerProps){
 
 
@@ -59,6 +59,14 @@ function Filler({
     return (
       /*长长的数据列表*/
       <div style={outerStyle}>
+        {/* 滚动时已渲染的dom列表的高度因为不定高，所以也会随着滚动而高度变化 */}
+        <ResizeObserver
+          onResize={({ offsetHeight:renderedDataHeight }) => {
+            // offsetHeight就是渲染的dom的height
+            console.log(renderedDataHeight,'offsetHeight67')
+            collectHeight();
+          }}
+        >
           {/*已经渲染出的dom，比可视区域内多出一个item*/}
           <div
             style={innerStyle}
@@ -69,8 +77,8 @@ function Filler({
             {...innerProps}
           >
             {children}
-            {extra}
           </div>
+        </ResizeObserver>
       </div>
     );
 }

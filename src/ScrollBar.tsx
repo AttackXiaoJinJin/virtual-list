@@ -8,7 +8,6 @@ export interface ScrollBarProps {
   prefixCls: string;
   scrollOffset: number;
   scrollRange: number;
-  rtl: boolean;
   onScroll: (scrollOffset: number, horizontal?: boolean) => void;
   onStartMove: () => void;
   onStopMove: () => void;
@@ -34,7 +33,6 @@ function getPageXY(
 const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) => {
   const {
     prefixCls,
-    rtl,
     scrollOffset,
     scrollRange,
     onStartMove,
@@ -51,24 +49,10 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
   const [pageXY, setPageXY] = React.useState<number | null>(null);
   const [startTop, setStartTop] = React.useState<number | null>(null);
 
-  const isLTR = !rtl;
 
   // ========================= Refs =========================
   const scrollbarRef = React.useRef<HTMLDivElement>();
   const thumbRef = React.useRef<HTMLDivElement>();
-
-  // ======================= Visible ========================
-  const [visible, setVisible] = React.useState(false);
-  const visibleTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
-
-  const delayHidden = () => {
-    clearTimeout(visibleTimeoutRef.current);
-    setVisible(true);
-
-    visibleTimeoutRef.current = setTimeout(() => {
-      setVisible(false);
-    }, 3000);
-  };
 
   // ======================== Range =========================
   const enableScrollRange = scrollRange - containerSize || 0;
@@ -146,11 +130,11 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
           const offset = getPageXY(e, horizontal) - statePageY;
           let newTop = stateStartTop;
 
-          if (!isLTR && horizontal) {
-            newTop -= offset;
-          } else {
+          // if (!isLTR && horizontal) {
+          //   newTop -= offset;
+          // } else {
             newTop += offset;
-          }
+          // }
 
           const tmpEnableScrollRange = enableScrollRangeRef.current;
           const tmpEnableOffsetRange = enableOffsetRangeRef.current;
@@ -189,21 +173,12 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
     }
   }, [dragging]);
 
-  React.useEffect(() => {
-    delayHidden();
-  }, [scrollOffset]);
-
-  // ====================== Imperative ======================
-  React.useImperativeHandle(ref, () => ({
-    delayHidden,
-  }));
-
   // ======================== Render ========================
   const scrollbarPrefixCls = `${prefixCls}-scrollbar`;
 
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
-    visibility: visible ? null : 'hidden',
+    visibility: null,
   };
 
   const thumbStyle: React.CSSProperties = {
@@ -224,23 +199,13 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
     // Thumb
     thumbStyle.height = '100%';
     thumbStyle.width = spinSize;
-
-    if (isLTR) {
-      thumbStyle.left = top;
-    } else {
-      thumbStyle.right = top;
-    }
+    thumbStyle.left = top;
   } else {
     // Container
     containerStyle.width = 8;
     containerStyle.top = 0;
     containerStyle.bottom = 0;
-
-    if (isLTR) {
-      containerStyle.right = 0;
-    } else {
-      containerStyle.left = 0;
-    }
+    containerStyle.right = 0;
 
     // Thumb
     thumbStyle.width = '100%';
@@ -254,11 +219,10 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
       className={classNames(scrollbarPrefixCls, {
         [`${scrollbarPrefixCls}-horizontal`]: horizontal,
         [`${scrollbarPrefixCls}-vertical`]: !horizontal,
-        [`${scrollbarPrefixCls}-visible`]: visible,
+        [`${scrollbarPrefixCls}-visible`]: true,
       })}
       style={{ ...containerStyle, ...style }}
       onMouseDown={onContainerMouseDown}
-      onMouseMove={delayHidden}
     >
       <div
         ref={thumbRef}

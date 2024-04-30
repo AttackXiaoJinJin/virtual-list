@@ -51,7 +51,7 @@ export interface ListProps<T> extends Omit<React.HTMLAttributes<any>, 'children'
   itemHeight?: number;
   /** If not match virtual scroll condition, Set List still use height of container. */
   fullHeight?: boolean;
-  itemKey: React.Key | ((item: T) => React.Key);
+  itemKey: React.Key;
   component?: string | React.FC<any> | React.ComponentClass<any>;
   /** Set `false` will always use real scroll instead of virtual one */
   virtual?: boolean;
@@ -80,14 +80,9 @@ export interface ListProps<T> extends Omit<React.HTMLAttributes<any>, 'children'
    */
   onVirtualScroll?: (info: ScrollInfo) => void;
 
-  /** Trigger when render list item changed */
-  onVisibleChange?: (visibleList: T[], fullList: T[]) => void;
-
   /** Inject to inner container props. Only use when you need pass aria related data */
   innerProps?: InnerProps;
 
-  /** Render extra content into Filler */
-  extraRender?: (info: ExtraRenderInfo) => React.ReactNode;
 }
 
 export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
@@ -98,7 +93,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     itemHeight,
     fullHeight = true,
     style,
-    data,
+    data:_data,
     children,
     itemKey,
     virtual,
@@ -107,9 +102,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     component: Component = 'div',
     onScroll,
     onVirtualScroll,
-    onVisibleChange,
     innerProps,
-    extraRender,
     styles,
     ...restProps
   } = props;
@@ -117,9 +110,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   // =============================== Item Key ===============================
   const getKey = React.useCallback<GetKey<T>>(
     (item: T) => {
-      if (typeof itemKey === 'function') {
-        return itemKey(item);
-      }
       return item?.[itemKey as string];
     },
     [itemKey],
@@ -135,18 +125,17 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   // ================================= MISC =================================
   const useVirtual = !!(virtual !== false && height && itemHeight);
   const containerHeight = React.useMemo(() =>  Object.values(heights.maps).reduce((total, curr) => total + curr, 0), [heights.id, heights.maps]);
-  const inVirtual = useVirtual && data && (Math.max(itemHeight * data.length, containerHeight) > height || Boolean(scrollWidth));
-  const isRTL = direction === 'rtl';
+  const inVirtual = useVirtual && _data && (Math.max(itemHeight * _data.length, containerHeight) > height || Boolean(scrollWidth));
 
-  const mergedClassName = classNames(prefixCls, { [`${prefixCls}-rtl`]: isRTL }, className);
-  const mergedData = data || EMPTY_DATA;
+  const mergedClassName = classNames(prefixCls, className);
+  const data = _data || EMPTY_DATA;
   const componentRef = useRef<HTMLDivElement>();
-  // const fillerInnerRef = useRef<HTMLDivElement>();
 
   // =============================== Item Key ===============================
 
   const [offsetTop, setOffsetTop] = useState(0);
-  const [offsetLeft, setOffsetLeft] = useState(0);
+  /* 横向滚动条距离数据列表的偏移量，而不是容器 */
+  const [offsetX, setOffsetX] = useState(0);
   const [scrollMoving, setScrollMoving] = useState(false);
 
   const onScrollbarStartMove = () => {
@@ -154,10 +143,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   };
   const onScrollbarStopMove = () => {
     setScrollMoving(false);
-  };
-
-  const sharedConfig: SharedConfig<T> = {
-    getKey,
   };
 
   // ================================ Scroll ================================
@@ -179,10 +164,10 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   // ================================ Legacy ================================
   // Put ref here since the range is generate by follow
-  const rangeRef = useRef({ start: 0, end: mergedData.length });
+  // const rangeRef = useRef({ start: 0, end: data.length });
 
   const diffItemRef = useRef<T>();
-  const [diffItem] = useDiffItem(mergedData, getKey);
+  const [diffItem] = useDiffItem(data, getKey);
   diffItemRef.current = diffItem;
 
   // ========================== Visible Calculation =========================
@@ -191,69 +176,72 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     scrollHeight,
     start,
     end,
-    offset: fillerOffset,
+    /* 就是移到可视容器外的item的个数+item高度，是累加的 */
+    offsetY
   } = React.useMemo(() => {
     console.log(useVirtual,'useVirtual194')
 
     let itemTop = 0;
     let startIndex: number;
-    let startOffset: number;
+    let offsetY: number;
     let endIndex: number;
-
-    const dataLen = mergedData.length;
+    // 这里取长度，我理解就是取一个快照，这样即使data.length改变了也不受影响
+    const dataLen = data.length;
     for (let i = 0; i < dataLen; i += 1) {
-      const item = mergedData[i];
+      const item = data[i];
       const key = getKey(item);
-
+      // 从已计算缓存的heightCache里获取每个item height
       const cacheHeight = heights.get(key);
+      // item底部距离容器顶部的距离=item顶部距离+item高度
       const currentItemBottom = itemTop + (cacheHeight === undefined ? itemHeight : cacheHeight);
-
-      // Check item top in the range
+      // 根据容器顶部和item底部判断item是否在容器中
       if (currentItemBottom >= offsetTop && startIndex === undefined) {
         startIndex = i;
-        startOffset = itemTop;
+        offsetY = itemTop;
+        console.log(startIndex,itemTop,'itemTop214')
       }
 
-      // Check item bottom in the range. We will render additional one item for motion usage
+      // 根据容器底部和item顶部判断item是否在容器中
       if (currentItemBottom > offsetTop + height && endIndex === undefined) {
         endIndex = i;
       }
-
+// 为下一次循环赋初始值，也就是下一个item的top是上一个item的bottom
+      /* fixme:算是优化？每个item是根据上一个item计算而来的，并不是每次都整体做计算 */
       itemTop = currentItemBottom;
     }
-
-    // When scrollTop at the end but data cut to small count will reach this
+    // fixme:实验下是什么情况，猜测是当滚动条已经移动到最底部后，再搜索忽然跳到中间数据时，会卡住
     if (startIndex === undefined) {
       startIndex = 0;
-      startOffset = 0;
-
+      offsetY = 0;
+      // https://github.com/ant-design/ant-design/issues/37986
       endIndex = Math.ceil(height / itemHeight);
     }
     if (endIndex === undefined) {
-      endIndex = mergedData.length - 1;
+      endIndex = data.length - 1;
     }
-
-    // Give cache to improve scroll experience
-    endIndex = Math.min(endIndex + 1, mergedData.length - 1);
+    // endIndex可能会超出data.length，所以最后再来个兜底
+    // ps:我觉得只有 endIndex = Math.ceil(height / itemHeight); 这种情况会超出，只在这种情况防止下是不是更精确点
+    endIndex = Math.min(endIndex + 1, data.length - 1);
 
     return {
       scrollHeight: itemTop,
       start: startIndex,
       end: endIndex,
-      offset: startOffset,
+      offsetY
     };
-  }, [inVirtual, useVirtual, offsetTop, mergedData, heightUpdatedMark, height]);
+  }, [inVirtual, useVirtual, offsetTop, data, heightUpdatedMark, height]);
 
-  rangeRef.current.start = start;
-  rangeRef.current.end = end;
+  // rangeRef.current.start = start;
+  // rangeRef.current.end = end;
 
   // ================================= Size =================================
-  const [size, setSize] = React.useState({ width: 0, height });
+  const [containerSize, setContainerSize] = React.useState({ width: 0, height });
 
-  const onHolderResize: ResizeObserverProps['onResize'] = (sizeInfo) => {
-    setSize({
-      width: sizeInfo.width || sizeInfo.offsetWidth,
-      height: sizeInfo.height || sizeInfo.offsetHeight,
+  const onGetContainerSize: ResizeObserverProps['onResize'] = (containerSize) => {
+    console.log(containerSize,'sizeInfo252')
+    setContainerSize({
+      width: containerSize.width || containerSize.offsetWidth,
+      height: containerSize.height || containerSize.offsetHeight,
     });
   };
 
@@ -262,19 +250,23 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   const horizontalScrollBarRef = useRef<ScrollBarRef>();
 
   const horizontalScrollBarSpinSize = React.useMemo(
-    () => getSpinSize(size.width, scrollWidth),
-    [size.width, scrollWidth],
+    () => getSpinSize(containerSize.width, scrollWidth),
+    [containerSize.width, scrollWidth],
   );
   const verticalScrollBarSpinSize = React.useMemo(
-    () => getSpinSize(size.height, scrollHeight),
-    [size.height, scrollHeight],
+    () => getSpinSize(containerSize.height, scrollHeight),
+    [containerSize.height, scrollHeight],
   );
 
   // =============================== In Range ===============================
+  // 记录滚动时，data容器和指定高度容器的最大可滚动高度
   const maxScrollHeight = scrollHeight - height;
   const maxScrollHeightRef = useRef(maxScrollHeight);
   maxScrollHeightRef.current = maxScrollHeight;
-
+  // 当列表不可滚动时不阻止滚动
+  // https://github.com/react-component/virtual-list/pull/55
+  // fixme:当列表不可以滚动时，为什么滚动条还能滚动？
+  // 控制滚动条滚动的范围，不至于离谱
   function keepInRange(newScrollTop: number) {
     let newTop = newScrollTop;
     if (!Number.isNaN(maxScrollHeightRef.current)) {
@@ -287,11 +279,11 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   const isScrollAtTop = offsetTop <= 0;
   const isScrollAtBottom = offsetTop >= maxScrollHeight;
 
-  const originScroll = useOriginScroll(isScrollAtTop, isScrollAtBottom);
+  // const originScroll = useOriginScroll(isScrollAtTop, isScrollAtBottom);
 
   // ================================ Scroll ================================
   const getVirtualScrollInfo = () => ({
-    x: isRTL ? -offsetLeft : offsetLeft,
+    x: offsetX,
     y: offsetTop,
   });
 
@@ -316,9 +308,11 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   function onScrollBar(newScrollOffset: number, horizontal?: boolean) {
     const newOffset = newScrollOffset;
 
+    /* todo:横向滚动须立即更新offsetX，试下没有flushSync的情况 */
     if (horizontal) {
+      console.log(newOffset,'newOffset326')
       flushSync(() => {
-        setOffsetLeft(newOffset);
+        setOffsetX(newOffset);
       });
       triggerScroll();
     } else {
@@ -340,24 +334,24 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   const keepInHorizontalRange = (nextOffsetLeft: number) => {
     let tmpOffsetLeft = nextOffsetLeft;
-    const max = Boolean(scrollWidth) ? scrollWidth - size.width : 0;
+    const max = Boolean(scrollWidth) ? scrollWidth - containerSize.width : 0;
     tmpOffsetLeft = Math.max(tmpOffsetLeft, 0);
     tmpOffsetLeft = Math.min(tmpOffsetLeft, max);
 
     return tmpOffsetLeft;
   };
-
-  const onWheelDelta: Parameters<typeof useFrameWheel>[4] = useEvent((offsetXY, fromHorizontal) => {
+  /* function example(a: number, b: string): void {}，则 Parameters<typeof example> 的类型将是 [number, string] */
+  const onWheelDelta: Parameters<typeof useFrameWheel>[3] = useEvent((offsetXY, fromHorizontal) => {
     if (fromHorizontal) {
+      console.log(offsetXY,'offsetXY359')
       // Horizontal scroll no need sync virtual position
-
-      flushSync(() => {
-        setOffsetLeft((left) => {
-          const nextOffsetLeft = left + (isRTL ? -offsetXY : offsetXY);
+      // flushSync(() => {
+        setOffsetX((left) => {
+          const nextOffsetLeft = left + (offsetXY);
 
           return keepInHorizontalRange(nextOffsetLeft);
         });
-      });
+      // });
 
       triggerScroll();
     } else {
@@ -369,8 +363,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   });
 
   // Since this added in global,should use ref to keep update
-  const [onRawWheel, onFireFoxScroll] = useFrameWheel(
-    useVirtual,
+  const [onRawWheel] = useFrameWheel(
     isScrollAtTop,
     isScrollAtBottom,
     Boolean(scrollWidth),
@@ -378,43 +371,32 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   );
 
   // Mobile touch move
-  useMobileTouchMove(useVirtual, componentRef, (deltaY, smoothOffset) => {
-    if (originScroll(deltaY, smoothOffset)) {
-      return false;
-    }
-
-    onRawWheel({ preventDefault() {}, deltaY } as WheelEvent);
-    return true;
-  });
+  // useMobileTouchMove(useVirtual, componentRef, (deltaY, smoothOffset) => {
+  //   if (originScroll(deltaY, smoothOffset)) {
+  //     return false;
+  //   }
+  //
+  //   onRawWheel({ preventDefault() {}, deltaY } as WheelEvent);
+  //   return true;
+  // });
 
   useLayoutEffect(() => {
-    // Firefox only
-    function onMozMousePixelScroll(e: Event) {
-      if (useVirtual) {
-        e.preventDefault();
-      }
-    }
-
     const componentEle = componentRef.current;
     componentEle.addEventListener('wheel', onRawWheel);
-    componentEle.addEventListener('DOMMouseScroll', onFireFoxScroll as any);
-    componentEle.addEventListener('MozMousePixelScroll', onMozMousePixelScroll);
 
     return () => {
       componentEle.removeEventListener('wheel', onRawWheel);
-      componentEle.removeEventListener('DOMMouseScroll', onFireFoxScroll as any);
-      componentEle.removeEventListener('MozMousePixelScroll', onMozMousePixelScroll as any);
     };
   }, [useVirtual]);
 
   // Sync scroll left
   useLayoutEffect(() => {
     if (scrollWidth) {
-      setOffsetLeft((left) => {
+      setOffsetX((left) => {
         return keepInHorizontalRange(left);
       });
     }
-  }, [size.width, scrollWidth]);
+  }, [containerSize.width, scrollWidth]);
 
   // ================================= Ref ==================================
   const delayHideScrollBar = () => {
@@ -424,7 +406,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   const scrollTo = useScrollTo<T>(
     componentRef,
-    mergedData,
+    data,
     heights,
     itemHeight,
     getKey,
@@ -443,7 +425,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       if (isPosScroll(config)) {
         // Scroll X
         if (config.left !== undefined) {
-          setOffsetLeft(keepInHorizontalRange(config.left));
+          setOffsetX(keepInHorizontalRange(config.left));
         }
 
         // Scroll Y
@@ -455,37 +437,24 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   }));
 
   // ================================ Effect ================================
-  /** We need told outside that some list not rendered */
-  useLayoutEffect(() => {
-    if (onVisibleChange) {
-      const renderList = mergedData.slice(start, end + 1);
+  // /** We need told outside that some list not rendered */
+  // useLayoutEffect(() => {
+  //   if (onVisibleChange) {
+  //     const renderedList = data.slice(start, end + 1);
+  //
+  //     onVisibleChange(renderedList, data);
+  //   }
+  // }, [start, end, data]);
 
-      onVisibleChange(renderList, mergedData);
-    }
-  }, [start, end, mergedData]);
-
-  // ================================ Extra =================================
-  const getSize = useGetSize(mergedData, getKey, heights, itemHeight);
-
-  const extraContent = extraRender?.({
-    start,
-    end,
-    virtual: inVirtual,
-    offsetX: offsetLeft,
-    offsetY: fillerOffset,
-    rtl: isRTL,
-    getSize,
-  });
-
-  // ================================ Render ================================
-  const listChildren = useChildren(
-    mergedData,
+  // 已渲染出的item===================
+  const renderedChildren = useChildren(
+    data,
     start,
     end,
     scrollWidth,
     setInstanceRef,
     children,
-    sharedConfig,
+    getKey,
   );
 
   let componentStyle: React.CSSProperties = null;
@@ -511,8 +480,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   const containerProps: React.HTMLAttributes<HTMLDivElement> = {};
 
-  console.log(scrollWidth,offsetLeft,fillerOffset,'style527')
-
   return (<div
       style={{
         ...style,
@@ -522,7 +489,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       {...containerProps}
       {...restProps}
     >
-      <ResizeObserver onResize={onHolderResize}>
+      <ResizeObserver onResize={onGetContainerSize}>
         {/*可视区域*/}
         <Component
           className={`${prefixCls}-holder`}
@@ -534,13 +501,13 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
           <Filler
             prefixCls={prefixCls}
             innerProps={innerProps}
-            extra={extraContent}
 
             height={scrollHeight}
-            offsetX={offsetLeft}
-            offsetY={fillerOffset}
+            offsetX={offsetX}
+            offsetY={offsetY}
+            collectHeight={collectHeight}
           >
-            {listChildren}
+            {renderedChildren}
           </Filler>
         </Component>
       </ResizeObserver>
@@ -551,29 +518,27 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
           prefixCls={prefixCls}
           scrollOffset={offsetTop}
           scrollRange={scrollHeight}
-          rtl={isRTL}
           onScroll={onScrollBar}
           onStartMove={onScrollbarStartMove}
           onStopMove={onScrollbarStopMove}
           spinSize={verticalScrollBarSpinSize}
-          containerSize={size.height}
+          containerSize={containerSize.height}
           style={styles?.verticalScrollBar}
           thumbStyle={styles?.verticalScrollBarThumb}
         />
       )}
 
-      {inVirtual && scrollWidth > size.width && (
+      {inVirtual && scrollWidth > containerSize.width && (
         <ScrollBar
           ref={horizontalScrollBarRef}
           prefixCls={prefixCls}
-          scrollOffset={offsetLeft}
+          scrollOffset={offsetX}
           scrollRange={scrollWidth}
-          rtl={isRTL}
           onScroll={onScrollBar}
           onStartMove={onScrollbarStartMove}
           onStopMove={onScrollbarStopMove}
           spinSize={horizontalScrollBarSpinSize}
-          containerSize={size.width}
+          containerSize={containerSize.width}
           horizontal
           style={styles?.horizontalScrollBar}
           thumbStyle={styles?.horizontalScrollBarThumb}
@@ -584,8 +549,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 }
 
 const List = React.forwardRef<ListRef, ListProps<any>>(RawList);
-
-List.displayName = 'List';
 
 export default List as <Item = any>(
   props: ListProps<Item> & { ref?: React.Ref<ListRef> },

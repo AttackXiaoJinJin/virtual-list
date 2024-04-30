@@ -1,18 +1,19 @@
 import * as React from 'react';
 import type { SharedConfig, RenderFunc } from '../interface';
 import { Item } from '../Item';
+import { GetKey } from '../interface';
 
 export default function useChildren<T>(
-  list: T[],
-  startIndex: number,
-  endIndex: number,
+  data: T[],
+  start: number,
+  end: number,
   scrollWidth: number,
-  setNodeRef: (item: T, element: HTMLElement) => void,
+  setInstanceRef: (item: T, element: HTMLElement) => void,
   renderFunc: RenderFunc<T>,
-  { getKey }: SharedConfig<T>,
+  getKey:GetKey<T>,
 ) {
-  return list.slice(startIndex, endIndex + 1).map((item, index) => {
-    const eleIndex = startIndex + index;
+  return data.slice(start, end + 1).map((item, index) => {
+    const eleIndex = start + index;
     const node = renderFunc(item, eleIndex, {
       style: {
         width: scrollWidth,
@@ -21,7 +22,7 @@ export default function useChildren<T>(
 
     const key = getKey(item);
     return (
-      <Item key={key} setRef={(ele) => setNodeRef(item, ele)}>
+      <Item key={key} setRef={(ele) => setInstanceRef(item, ele)}>
         {node}
       </Item>
     );

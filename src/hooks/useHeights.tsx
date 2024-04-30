@@ -30,6 +30,7 @@ export default function useHeights<T>(
   function collectHeight(sync = false) {
     cancelRaf();
 
+    // 已渲染数据dom的高度
     const doCollect = () => {
       instanceRef.current.forEach((element, key) => {
         if (element && element.offsetParent) {

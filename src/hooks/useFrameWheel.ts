@@ -9,7 +9,6 @@ interface FireFoxDOMMouseScrollEvent {
 }
 
 export default function useFrameWheel(
-  inVirtual: boolean,
   isScrollAtTop: boolean,
   isScrollAtBottom: boolean,
   horizontalScroll: boolean,
@@ -17,7 +16,7 @@ export default function useFrameWheel(
    * Return `true` when you need to prevent default event
    */
   onWheelDelta: (offset: number, horizontal?: boolean) => void,
-): [(e: WheelEvent) => void, (e: FireFoxDOMMouseScrollEvent) => void] {
+): [(e: WheelEvent) => void] {
   const offsetRef = useRef(0);
   const nextFrameRef = useRef<number>(null);
 
@@ -37,10 +36,7 @@ export default function useFrameWheel(
     // Do nothing when scroll at the edge, Skip check when is in scroll
     if (originScroll(deltaY)) return;
 
-    // Proxy of scroll events
-    if (!isFF) {
       event.preventDefault();
-    }
 
     nextFrameRef.current = raf(() => {
       // Patch a multiple for Firefox to fix wheel number too small
@@ -52,19 +48,17 @@ export default function useFrameWheel(
   }
 
   function onWheelX(event: WheelEvent, deltaX: number) {
-    onWheelDelta(deltaX, true);
 
-    if (!isFF) {
+    onWheelDelta(deltaX, true);
       event.preventDefault();
-    }
   }
 
   // Check for which direction does wheel do. `sx` means `shift + wheel`
+  // 如果用户用鼠标，他可能会用shift+滚轮来进行横向滚动
   const wheelDirectionRef = useRef<'x' | 'y' | 'sx' | null>(null);
   const wheelDirectionCleanRef = useRef<number>(null);
 
   function onWheel(event: WheelEvent) {
-    if (!inVirtual) return;
 
     // Wait for 2 frame to clean direction
     raf.cancel(wheelDirectionCleanRef.current);
@@ -73,7 +67,6 @@ export default function useFrameWheel(
     }, 2);
 
     const { deltaX, deltaY, shiftKey } = event;
-
     let mergedDeltaX = deltaX;
     let mergedDeltaY = deltaY;
 
@@ -101,12 +94,5 @@ export default function useFrameWheel(
     }
   }
 
-  // A patch for firefox
-  function onFireFoxScroll(event: FireFoxDOMMouseScrollEvent) {
-    if (!inVirtual) return;
-
-    isMouseScrollRef.current = event.detail === wheelValueRef.current;
-  }
-
-  return [onWheel, onFireFoxScroll];
+  return [onWheel];
 }
