@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useMemoizedFn } from 'ahooks';
 
 export interface ItemProps {
   children: React.ReactElement;
@@ -6,9 +7,9 @@ export interface ItemProps {
 }
 
 export function Item({ children, setRef }: ItemProps) {
-  const refFunc = React.useCallback(node => {
+  const refFunc = useMemoizedFn((node) => {
     setRef(node);
-  }, []);
+  })
 
   return React.cloneElement(children, {
     ref: refFunc,

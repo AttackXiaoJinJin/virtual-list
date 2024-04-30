@@ -5,6 +5,7 @@ import type { GetKey } from '../interface';
 import type CacheMap from '../utils/CacheMap';
 import useLayoutEffect from 'rc-util/lib/hooks/useLayoutEffect';
 import { warning } from 'rc-util';
+import { useMemoizedFn } from 'ahooks';
 
 const MAX_TIMES = 10;
 
@@ -148,10 +149,10 @@ export default function useScrollTo<T>(
         'Seems `scrollTo` with `rc-virtual-list` reach the max limitation. Please fire issue for us. Thanks.',
       );
     }
-  }, [syncState, containerRef.current]);
+  }, [syncState,collectHeight,containerRef,data,getKey,heights,itemHeight,syncScrollTop]);
 
   // =========================== Scroll To ===========================
-  return (arg) => {
+  const scrollTo=useMemoizedFn((arg) => {
     // When not argument provided, we think dev may want to show the scrollbar
     if (arg === null || arg === undefined) {
       triggerFlash();
@@ -182,5 +183,7 @@ export default function useScrollTo<T>(
         originAlign: align,
       });
     }
-  };
+  })
+
+  return scrollTo
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { SharedConfig, RenderFunc } from '../interface';
 import { Item } from '../Item';
-import { GetKey } from '../interface';
+import type { GetKey } from '../interface';
 
 export default function useChildren<T>(
   data: T[],

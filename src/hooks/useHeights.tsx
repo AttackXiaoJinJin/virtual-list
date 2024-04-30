@@ -4,6 +4,7 @@ import findDOMNode from 'rc-util/lib/Dom/findDOMNode';
 import raf from 'rc-util/lib/raf';
 import type { GetKey } from '../interface';
 import CacheMap from '../utils/CacheMap';
+import { useMemoizedFn } from 'ahooks';
 
 export default function useHeights<T>(
   getKey: GetKey<T>,
@@ -18,6 +19,7 @@ export default function useHeights<T>(
   const heightsRef = useRef(new CacheMap());
   const collectRafRef = useRef<number>();
 
+
   function cancelRaf() {
     raf.cancel(collectRafRef.current);
   }
@@ -26,9 +28,9 @@ export default function useHeights<T>(
   // 缓存每个viewElement的高度
   /* 这个是在requestAnimationFrame内缓存viewport内所有的item高度 */
   // 在requestAnimateFrame中更新rendered items高度
-  function collectHeight(sync = false) {
+  const collectHeight=useMemoizedFn((sync = false)=> {
     cancelRaf();
-
+    console.log(instanceRef.current,'instanceRef33')
     // 已渲染数据dom的高度
     const doCollect = () => {
       instanceRef.current.forEach((element, key) => {
@@ -36,6 +38,7 @@ export default function useHeights<T>(
           const htmlElement = findDOMNode<HTMLElement>(element);
           const { offsetHeight } = htmlElement;
           if (heightsRef.current.get(key) !== offsetHeight) {
+            console.log(key,'key41')
             heightsRef.current.set(key, htmlElement.offsetHeight);
           }
         }
@@ -50,9 +53,9 @@ export default function useHeights<T>(
     } else {
       collectRafRef.current = raf(doCollect);
     }
-  }
+  })
 
-  function setInstanceRef(item: T, instance: HTMLElement) {
+  const setInstanceRef=useMemoizedFn((item: T, instance: HTMLElement)=> {
     const key = getKey(item);
     if (instance) {
       instanceRef.current.set(key, instance);
@@ -60,10 +63,12 @@ export default function useHeights<T>(
     } else {
       instanceRef.current.delete(key);
     }
-  }
+  })
 
   useEffect(() => {
-    return cancelRaf;
+    return ()=>{
+      cancelRaf()
+    };
   }, []);
 
   return [setInstanceRef, collectHeight, heightsRef.current, heightUpdatedMark];

@@ -1,12 +1,13 @@
-import * as React from 'react';
+import type {RefObject} from 'react';
 import { useRef } from 'react';
 import useLayoutEffect from 'rc-util/lib/hooks/useLayoutEffect';
+import { useMemoizedFn } from 'ahooks';
 
 const SMOOTH_PTG = 14 / 15;
 
 export default function useMobileTouchMove(
   inVirtual: boolean,
-  listRef: React.RefObject<HTMLDivElement>,
+  listRef: RefObject<HTMLDivElement>,
   callback: (offsetY: number, smoothOffset?: boolean) => boolean,
 ) {
   const touchedRef = useRef(false);
@@ -18,7 +19,12 @@ export default function useMobileTouchMove(
   const intervalRef = useRef(null);
 
   /* eslint-disable prefer-const */
-  let cleanUpEvents: () => void;
+  const cleanUpEvents=useMemoizedFn( () => {
+    if (elementRef.current) {
+      elementRef.current.removeEventListener('touchmove', onTouchMove);
+      elementRef.current.removeEventListener('touchend', onTouchEnd);
+    }
+  })
 
   const onTouchMove = (e: TouchEvent) => {
     if (touchedRef.current) {
@@ -48,7 +54,7 @@ export default function useMobileTouchMove(
     cleanUpEvents();
   };
 
-  const onTouchStart = (e: TouchEvent) => {
+  const onTouchStart = useMemoizedFn((e: TouchEvent) => {
     cleanUpEvents();
 
     if (e.touches.length === 1 && !touchedRef.current) {
@@ -59,14 +65,9 @@ export default function useMobileTouchMove(
       elementRef.current.addEventListener('touchmove', onTouchMove);
       elementRef.current.addEventListener('touchend', onTouchEnd);
     }
-  };
+  });
 
-  cleanUpEvents = () => {
-    if (elementRef.current) {
-      elementRef.current.removeEventListener('touchmove', onTouchMove);
-      elementRef.current.removeEventListener('touchend', onTouchEnd);
-    }
-  };
+
 
   useLayoutEffect(() => {
     if (inVirtual) {

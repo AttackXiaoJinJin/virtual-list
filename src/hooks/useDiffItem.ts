@@ -1,23 +1,23 @@
 import * as React from 'react';
 import { findListDiffIndex } from '../utils/algorithmUtil';
 import type { GetKey } from '../interface';
+import { useRef } from 'react';
 
 export default function useDiffItem<T>(
   data: T[],
   getKey: GetKey<T>,
-  onDiff?: (diffIndex: number) => void,
 ): [T] {
-  const [prevData, setPrevData] = React.useState(data);
+  const prevData=useRef(data)
   const [diffItem, setDiffItem] = React.useState(null);
+  prevData.current=data
+
 
   React.useEffect(() => {
-    const diff = findListDiffIndex(prevData || [], data || [], getKey);
+    const diff = findListDiffIndex(prevData.current || [], data || [], getKey);
     if (diff?.index !== undefined) {
-      onDiff?.(diff.index);
       setDiffItem(data[diff.index]);
     }
-    setPrevData(data);
-  }, [data]);
+  }, [data,getKey]);
 
   return [diffItem];
 }

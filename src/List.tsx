@@ -21,6 +21,7 @@ import useLayoutEffect from 'rc-util/lib/hooks/useLayoutEffect';
 import { getSpinSize } from './utils/scrollbarUtil';
 import { useEvent } from 'rc-util';
 import { useGetSize } from './hooks/useGetSize';
+import { useMemoizedFn } from 'ahooks';
 
 const EMPTY_DATA = [];
 
@@ -108,12 +109,10 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   } = props;
 
   // =============================== Item Key ===============================
-  const getKey = React.useCallback<GetKey<T>>(
+  const getKey = useMemoizedFn<GetKey<T>>(
     (item: T) => {
       return item?.[itemKey as string];
-    },
-    [itemKey],
-  );
+    })
 
   // ================================ Height ================================
   const [setInstanceRef, collectHeight, heights, heightUpdatedMark] = useHeights(
@@ -122,9 +121,10 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   // ================================= MISC =================================
   const useVirtual = !!(virtual !== false && height && itemHeight);
-  const containerHeight = React.useMemo(() =>  Object.values(heights.maps).reduce((total, curr) => total + curr, 0), [heights.id, heights.maps]);
+  const containerHeight = React.useMemo(() =>  Object.values(heights.maps).reduce((total, curr) => total + curr, 0), [heights.maps]);
+  console.log(heights.id, heights.maps,'maps126')
   const inVirtual = useVirtual && _data && (Math.max(itemHeight * _data.length, containerHeight) > height || Boolean(scrollWidth));
-
+  console.log(containerHeight,height,'containerHeight127')
   const mergedClassName = classNames(prefixCls, className);
   const data = _data || EMPTY_DATA;
   const componentRef = useRef<HTMLDivElement>();
@@ -136,15 +136,15 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   const [offsetX, setOffsetX] = useState(0);
   const [scrollMoving, setScrollMoving] = useState(false);
 
-  const onScrollbarStartMove = () => {
+  const onScrollbarStartMove = useMemoizedFn(() => {
     setScrollMoving(true);
-  };
-  const onScrollbarStopMove = () => {
+  });
+  const onScrollbarStopMove = useMemoizedFn(() => {
     setScrollMoving(false);
-  };
+  });
 
   // ================================ Scroll ================================
-  function syncScrollTop(newTop: number | ((prev: number) => number)) {
+  const syncScrollTop=useMemoizedFn((newTop: number | ((prev: number) => number))=> {
     setOffsetTop((origin) => {
       let value: number;
       if (typeof newTop === 'function') {
@@ -158,7 +158,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       componentRef.current.scrollTop = alignedTop;
       return alignedTop;
     });
-  }
+  })
 
   // ================================ Legacy ================================
   // Put ref here since the range is generate by follow
@@ -177,7 +177,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     /* 就是移到可视容器外的item的个数+item高度，是累加的 */
     offsetY
   } = React.useMemo(() => {
-    console.log(useVirtual,'useVirtual194')
 
     let itemTop = 0;
     let startIndex: number;
@@ -196,7 +195,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       if (currentItemBottom >= offsetTop && startIndex === undefined) {
         startIndex = i;
         offsetY = itemTop;
-        console.log(startIndex,itemTop,'itemTop214')
       }
 
       // 根据容器底部和item顶部判断item是否在容器中
@@ -228,27 +226,30 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       offsetY
     };
   }, [
-    inVirtual,
-    useVirtual,
+    // inVirtual,
+    // useVirtual,
     data,
-    heightUpdatedMark,
+    // heightUpdatedMark,
     height,
     offsetTop,
+    getKey,
+    heights,
+    itemHeight,
   ]);
-
+  console.log(end,'end237')
   // rangeRef.current.start = start;
   // rangeRef.current.end = end;
 
   // ================================= Size =================================
   const [containerSize, setContainerSize] = React.useState({ width: 0, height });
 
-  const onGetContainerSize: ResizeObserverProps['onResize'] = (containerSize) => {
+  const onGetContainerSize: ResizeObserverProps['onResize'] =useMemoizedFn( (containerSize) => {
     console.log(containerSize,'sizeInfo252')
     setContainerSize({
       width: containerSize.width || containerSize.offsetWidth,
       height: containerSize.height || containerSize.offsetHeight,
     });
-  };
+  });
 
   // Hack on scrollbar to enable flash call
   const verticalScrollBarRef = useRef<ScrollBarRef>();
@@ -272,14 +273,14 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   // https://github.com/react-component/virtual-list/pull/55
   // fixme:当列表不可以滚动时，为什么滚动条还能滚动？
   // 控制滚动条滚动的范围，不至于离谱
-  function keepInRange(newScrollTop: number) {
+  const keepInRange=useMemoizedFn((newScrollTop: number)=> {
     let newTop = newScrollTop;
     if (!Number.isNaN(maxScrollHeightRef.current)) {
       newTop = Math.min(newTop, maxScrollHeightRef.current);
     }
     newTop = Math.max(newTop, 0);
     return newTop;
-  }
+  })
 
   const isScrollAtTop = offsetTop <= 0;
   const isScrollAtBottom = offsetTop >= maxScrollHeight;
@@ -287,10 +288,12 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   // const originScroll = useOriginScroll(isScrollAtTop, isScrollAtBottom);
 
   // ================================ Scroll ================================
-  const getVirtualScrollInfo = () => ({
-    x: offsetX,
-    y: offsetTop,
-  });
+  const getVirtualScrollInfo = useMemoizedFn(()=>{
+    return {
+      x: offsetX,
+      y: offsetTop,
+    }
+  })
 
   const lastVirtualScrollInfoRef = useRef(getVirtualScrollInfo());
 
@@ -310,7 +313,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     }
   });
 
-  function onScrollBar(newScrollOffset: number, horizontal?: boolean) {
+  const onScrollBar=useMemoizedFn((newScrollOffset: number, horizontal?: boolean)=> {
     const newOffset = newScrollOffset;
 
     /* todo:横向滚动须立即更新offsetX，试下没有flushSync的情况 */
@@ -323,10 +326,10 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     } else {
       syncScrollTop(newOffset);
     }
-  }
+  })
 
   // When data size reduce. It may trigger native scroll event back to fit scroll position
-  function onFallbackScroll(e: React.UIEvent<HTMLDivElement>) {
+  const onFallbackScroll=useMemoizedFn((e: React.UIEvent<HTMLDivElement>)=> {
     const { scrollTop: newScrollTop } = e.currentTarget;
     if (newScrollTop !== offsetTop) {
       syncScrollTop(newScrollTop);
@@ -335,16 +338,16 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     // Trigger origin onScroll
     onScroll?.(e);
     triggerScroll();
-  }
+  })
 
-  const keepInHorizontalRange = (nextOffsetLeft: number) => {
+  const keepInHorizontalRange = useMemoizedFn((nextOffsetLeft: number) => {
     let tmpOffsetLeft = nextOffsetLeft;
     const max = Boolean(scrollWidth) ? scrollWidth - containerSize.width : 0;
     tmpOffsetLeft = Math.max(tmpOffsetLeft, 0);
     tmpOffsetLeft = Math.min(tmpOffsetLeft, max);
 
     return tmpOffsetLeft;
-  };
+  })
   /* function example(a: number, b: string): void {}，则 Parameters<typeof example> 的类型将是 [number, string] */
   const onWheelDelta: Parameters<typeof useFrameWheel>[3] = useEvent((offsetXY, fromHorizontal) => {
     if (fromHorizontal) {
@@ -392,7 +395,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     return () => {
       componentEle.removeEventListener('wheel', onRawWheel);
     };
-  }, [useVirtual]);
+  }, [useVirtual,onRawWheel]);
 
   // Sync scroll left
   useLayoutEffect(() => {
@@ -401,13 +404,13 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
         return keepInHorizontalRange(left);
       });
     }
-  }, [containerSize.width, scrollWidth]);
+  }, [containerSize.width, scrollWidth,keepInHorizontalRange]);
 
   // ================================= Ref ==================================
-  const delayHideScrollBar = () => {
+  const delayHideScrollBar = useMemoizedFn(() => {
     verticalScrollBarRef.current?.delayHidden();
     horizontalScrollBarRef.current?.delayHidden();
-  };
+  });
 
   const scrollTo = useScrollTo<T>(
     componentRef,
@@ -451,6 +454,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   //   }
   // }, [start, end, data]);
 
+  console.log(end,'end455')
   // 已渲染出的item===================
   const renderedChildren = useChildren(
     data,

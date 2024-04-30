@@ -1,7 +1,10 @@
 import type CacheMap from '../utils/CacheMap';
 import type { GetKey, GetSize } from '../interface';
 import * as React from 'react';
+import { useMemoizedFn } from 'ahooks';
 
+const key2Index:Map<React.Key, number>=new Map()
+const bottomList: number[]=[]
 /**
  * Size info need loop query for the `heights` which will has the perf issue.
  * Let cache result for each render phase.
@@ -12,11 +15,7 @@ export function useGetSize<T>(
   heights: CacheMap,
   itemHeight: number,
 ) {
-  const [key2Index, bottomList] = React.useMemo<
-    [key2Index: Map<React.Key, number>, bottomList: number[]]
-  >(() => [new Map(), []], [mergedData, heights.id, itemHeight]);
-
-  const getSize: GetSize = (startKey, endKey = startKey) => {
+  const getSize: GetSize = useMemoizedFn((startKey, endKey = startKey) => {
     // Get from cache first
     let startIndex = key2Index.get(startKey);
     let endIndex = key2Index.get(endKey);
@@ -47,7 +46,7 @@ export function useGetSize<T>(
       top: bottomList[startIndex - 1] || 0,
       bottom: bottomList[endIndex],
     };
-  };
+  })
 
   return getSize;
 }

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import raf from 'rc-util/lib/raf';
+import { useMemoizedFn } from 'ahooks';
 
 export type ScrollBarDirectionType = 'ltr' | 'rtl';
 
@@ -49,7 +50,6 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
   const [pageXY, setPageXY] = React.useState<number | null>(null);
   const [startTop, setStartTop] = React.useState<number | null>(null);
 
-
   // ========================= Refs =========================
   const scrollbarRef = React.useRef<HTMLDivElement>();
   const thumbRef = React.useRef<HTMLDivElement>();
@@ -77,7 +77,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
   const stateRef = React.useRef({ top, dragging, pageY: pageXY, startTop });
   stateRef.current = { top, dragging, pageY: pageXY, startTop };
 
-  const onThumbMouseDown = (e: React.MouseEvent | React.TouchEvent | TouchEvent) => {
+  const onThumbMouseDown = useMemoizedFn((e: React.MouseEvent | React.TouchEvent | TouchEvent) => {
     setDragging(true);
     setPageXY(getPageXY(e, horizontal));
     setStartTop(stateRef.current.top);
@@ -85,7 +85,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
     onStartMove();
     e.stopPropagation();
     e.preventDefault();
-  };
+  })
 
   // ======================== Effect ========================
 
@@ -106,7 +106,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
       scrollbarEle.removeEventListener('touchstart', onScrollbarTouchStart);
       thumbEle.removeEventListener('touchstart', onThumbMouseDown);
     };
-  }, []);
+  }, [onThumbMouseDown]);
 
   // Pass to effect
   const enableScrollRangeRef = React.useRef<number>();
@@ -171,7 +171,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
         raf.cancel(moveRafId);
       };
     }
-  }, [dragging]);
+  }, [dragging,horizontal,onScroll,onStopMove]);
 
   // ======================== Render ========================
   const scrollbarPrefixCls = `${prefixCls}-scrollbar`;

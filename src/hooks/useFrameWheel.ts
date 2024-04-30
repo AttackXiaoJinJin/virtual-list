@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import raf from 'rc-util/lib/raf';
 import isFF from '../utils/isFirefox';
 import useOriginScroll from './useOriginScroll';
+import { useMemoizedFn } from 'ahooks';
 
 interface FireFoxDOMMouseScrollEvent {
   detail: number;
@@ -27,7 +28,7 @@ export default function useFrameWheel(
   // Scroll status sync
   const originScroll = useOriginScroll(isScrollAtTop, isScrollAtBottom);
 
-  function onWheelY(event: WheelEvent, deltaY: number) {
+  const onWheelY=useMemoizedFn((event: WheelEvent, deltaY: number)=> {
     raf.cancel(nextFrameRef.current);
 
     offsetRef.current += deltaY;
@@ -36,7 +37,7 @@ export default function useFrameWheel(
     // Do nothing when scroll at the edge, Skip check when is in scroll
     if (originScroll(deltaY)) return;
 
-      event.preventDefault();
+    event.preventDefault();
 
     nextFrameRef.current = raf(() => {
       // Patch a multiple for Firefox to fix wheel number too small
@@ -45,20 +46,19 @@ export default function useFrameWheel(
       onWheelDelta(offsetRef.current * patchMultiple);
       offsetRef.current = 0;
     });
-  }
+  })
 
-  function onWheelX(event: WheelEvent, deltaX: number) {
-
+  const onWheelX=useMemoizedFn((event: WheelEvent, deltaX: number)=> {
     onWheelDelta(deltaX, true);
-      event.preventDefault();
-  }
+    event.preventDefault();
+  })
 
   // Check for which direction does wheel do. `sx` means `shift + wheel`
   // 如果用户用鼠标，他可能会用shift+滚轮来进行横向滚动
   const wheelDirectionRef = useRef<'x' | 'y' | 'sx' | null>(null);
   const wheelDirectionCleanRef = useRef<number>(null);
 
-  function onWheel(event: WheelEvent) {
+  const onWheel=useMemoizedFn((event: WheelEvent)=> {
 
     // Wait for 2 frame to clean direction
     raf.cancel(wheelDirectionCleanRef.current);
@@ -92,7 +92,7 @@ export default function useFrameWheel(
     } else {
       onWheelX(event, mergedDeltaX);
     }
-  }
+  })
 
   return [onWheel];
 }
