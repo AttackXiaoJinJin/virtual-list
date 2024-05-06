@@ -63,7 +63,7 @@ function Filler({
         <ResizeObserver
           onResize={({ offsetHeight:renderedDataHeight }) => {
             // offsetHeight就是渲染的dom的height
-            console.log(renderedDataHeight,'offsetHeight67')
+            console.log('collectHeight66')
             collectHeight();
           }}
         >

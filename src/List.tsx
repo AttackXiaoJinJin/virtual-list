@@ -184,6 +184,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     let endIndex: number;
     // 这里取长度，我理解就是取一个快照，这样即使data.length改变了也不受影响
     const dataLen = data.length;
+    console.log(offsetTop,'offsetTop187')
     for (let i = 0; i < dataLen; i += 1) {
       const item = data[i];
       const key = getKey(item);
@@ -217,6 +218,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     }
     // endIndex可能会超出data.length，所以最后再来个兜底
     // ps:我觉得只有 endIndex = Math.ceil(height / itemHeight); 这种情况会超出，只在这种情况防止下是不是更精确点
+    console.log(endIndex,data.length,'endIndex220')
     endIndex = Math.min(endIndex + 1, data.length - 1);
 
     return {
@@ -236,7 +238,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     heights,
     itemHeight,
   ]);
-  console.log(end,'end237')
+  console.log(end,scrollHeight,'end237')
   // rangeRef.current.start = start;
   // rangeRef.current.end = end;
 
@@ -263,7 +265,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     () => getSpinSize(containerSize.height, scrollHeight),
     [containerSize.height, scrollHeight],
   );
-
   // =============================== In Range ===============================
   // 记录滚动时，data容器和指定高度容器的最大可滚动高度
   const maxScrollHeight = scrollHeight - height;
@@ -418,7 +419,10 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     heights,
     itemHeight,
     getKey,
-    () => collectHeight(true),
+    () => {
+      console.log('collectHeight421')
+      return collectHeight(true)
+    },
     syncScrollTop,
     delayHideScrollBar,
   );
@@ -487,7 +491,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     }
   }
 
-  const containerProps: React.HTMLAttributes<HTMLDivElement> = {};
 
   return (<div
       style={{
@@ -495,7 +498,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
         position: 'relative',
       }}
       className={mergedClassName}
-      {...containerProps}
       {...restProps}
     >
       <ResizeObserver onResize={onGetContainerSize}>

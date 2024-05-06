@@ -38,7 +38,6 @@ export default function useHeights<T>(
           const htmlElement = findDOMNode<HTMLElement>(element);
           const { offsetHeight } = htmlElement;
           if (heightsRef.current.get(key) !== offsetHeight) {
-            console.log(key,'key41')
             heightsRef.current.set(key, htmlElement.offsetHeight);
           }
         }
@@ -57,6 +56,7 @@ export default function useHeights<T>(
 
   const setInstanceRef=useMemoizedFn((item: T, instance: HTMLElement)=> {
     const key = getKey(item);
+    console.log('setInstanceRef59')
     if (instance) {
       instanceRef.current.set(key, instance);
       collectHeight();

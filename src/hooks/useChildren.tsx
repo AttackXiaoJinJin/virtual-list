@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { SharedConfig, RenderFunc } from '../interface';
+import type { RenderFunc } from '../interface';
 import { Item } from '../Item';
 import type { GetKey } from '../interface';
 
@@ -12,6 +12,8 @@ export default function useChildren<T>(
   children: RenderFunc<T>,
   getKey:GetKey<T>,
 ) {
+  console.log(start,end,'start15')
+  
   /* 会多render一个item */
   // use reduce
   return data.slice(start, end + 1).map((item, index) => {
