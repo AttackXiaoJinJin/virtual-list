@@ -38,7 +38,7 @@ export default function useHeights<T>(
           const htmlElement = findDOMNode<HTMLElement>(element);
           const { offsetHeight } = htmlElement;
           if (heightsRef.current.get(key) !== offsetHeight) {
-            heightsRef.current.set(key, htmlElement.offsetHeight);
+            heightsRef.current.set(key, offsetHeight);
           }
         }
       });

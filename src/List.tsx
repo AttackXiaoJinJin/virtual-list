@@ -206,6 +206,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       /* fixme:算是优化？每个item是根据上一个item计算而来的，并不是每次都整体做计算 */
       itemTop = currentItemBottom;
     }
+    console.log(startIndex,endIndex,height,itemHeight,Math.ceil(height / itemHeight),'startIndex209')
     // fixme:实验下是什么情况，猜测是当滚动条已经移动到最底部后，再搜索忽然跳到中间数据时，会卡住
     if (startIndex === undefined) {
       startIndex = 0;
@@ -391,6 +392,9 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   useLayoutEffect(() => {
     const componentEle = componentRef.current;
+    /* 为什么不劫持onScroll而是onWheel事件是因为我们为了不让白屏，是想滚动的时候，阻止滚动（阻止滚动条默认行为是e.preventDefault），等渲染item完成后，
+    * 通过scrollTop让滚动条移动到指定位置，但onScroll事件是滚动后才会触发UI事件，所以需要一个更前置的事件
+    *  */
     componentEle.addEventListener('wheel', onRawWheel);
 
     return () => {

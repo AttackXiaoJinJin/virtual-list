@@ -194,8 +194,9 @@ const Demo = () => {
           // onSkipRender={onAppear}
           // onItemRemove={onAppear}
         >
-          {(item, index) => (
-            <ForwardMyItem
+          {(item, index) => {
+
+            return <ForwardMyItem
               {...item}
               motionAppear={animating && insertIndex === index}
               visible={!closeMap[item.id]}
@@ -205,7 +206,7 @@ const Demo = () => {
               onInsertBefore={onInsertBefore}
               onInsertAfter={onInsertAfter}
             />
-          )}
+          }}
         </List>
       </div>
     </React.StrictMode>

@@ -13,7 +13,7 @@ export default function useChildren<T>(
   getKey:GetKey<T>,
 ) {
   console.log(start,end,'start15')
-  
+
   /* 会多render一个item */
   // use reduce
   return data.slice(start, end + 1).map((item, index) => {
