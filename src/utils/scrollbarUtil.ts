@@ -1,7 +1,15 @@
 const MIN_SIZE = 20;
 
-export function getSpinSize(containerSize = 0, scrollRange = 0) {
-  let baseSize = (containerSize / scrollRange) * containerSize;
+export function getSpinSize(containerSize = 0, dataListHeight = 0) {
+  let baseSize = (containerSize / dataListHeight) * containerSize;
+  /*
+  * barSize          containerSize
+  * —————————————— = ——————————————
+  * containerSize    dataListHeight
+  *
+  * barSize=containerSize*containerSize/dataListHeight
+  * */
+
   if (isNaN(baseSize)) {
     baseSize = 0;
   }

@@ -7,15 +7,15 @@ export type ScrollBarDirectionType = 'ltr' | 'rtl';
 
 export interface ScrollBarProps {
   prefixCls: string;
-  scrollOffset: number;
-  scrollRange: number;
+  overContainerHeight: number;
+  dataListHeight: number;
   onScroll: (scrollOffset: number, horizontal?: boolean) => void;
   onStartMove: () => void;
   onStopMove: () => void;
   horizontal?: boolean;
   style?: React.CSSProperties;
   thumbStyle?: React.CSSProperties;
-  spinSize: number;
+  scrollBarSize: number;
   containerSize: number;
 }
 
@@ -34,13 +34,13 @@ function getPageXY(
 const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) => {
   const {
     prefixCls,
-    scrollOffset,
-    scrollRange,
+    overContainerHeight,
+    dataListHeight,
     onStartMove,
     onStopMove,
     onScroll,
     horizontal,
-    spinSize,
+    scrollBarSize,
     containerSize,
     style,
     thumbStyle: propsThumbStyle,
@@ -48,24 +48,31 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
 
   const [dragging, setDragging] = React.useState(false);
   const [pageXY, setPageXY] = React.useState<number | null>(null);
-  const [startTop, setStartTop] = React.useState<number | null>(null);
+  const [startScrollBarTop, setStartScrollBarTop] = React.useState<number | null>(null);
   console.log(pageXY,'pageXY52')
   // ========================= Refs =========================
   const scrollbarRef = React.useRef<HTMLDivElement>();
   const thumbRef = React.useRef<HTMLDivElement>();
 
   // ======================== Range =========================
-  const enableScrollRange = scrollRange - containerSize || 0;
-  const enableOffsetRange = containerSize - spinSize || 0;
+  const dataListScrollRange = dataListHeight - containerSize || 0;
+  const scrollBarScrollRange = containerSize - scrollBarSize || 0;
 
-  // ========================= Top ==========================
-  const top = React.useMemo(() => {
-    if (scrollOffset === 0 || enableScrollRange === 0) {
+  const scrollBarTop = React.useMemo(() => {
+    if (overContainerHeight === 0 || dataListScrollRange === 0) {
       return 0;
     }
-    const ptg = scrollOffset / enableScrollRange;
-    return ptg * enableOffsetRange;
-  }, [scrollOffset, enableScrollRange, enableOffsetRange]);
+    /*
+    * overContainerHeight     scrollBarTop
+    * ————————————————————  = ——————————————
+    * dataListScrollRange     scrollBarScrollRange
+    *
+    * scrollBarTop = overContainerHeight*scrollBarScrollRange/dataListScrollRange
+    * */
+
+
+    return overContainerHeight*scrollBarScrollRange/dataListScrollRange
+  }, [overContainerHeight, dataListScrollRange, scrollBarScrollRange]);
 
   // ====================== Container =======================
   const onContainerMouseDown: React.MouseEventHandler = e => {
@@ -74,14 +81,14 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
   };
 
   // ======================== Thumb =========================
-  const stateRef = React.useRef({ top, dragging, pageY: pageXY, startTop });
-  stateRef.current = { top, dragging, pageY: pageXY, startTop };
+  const stateRef = React.useRef({ scrollBarTop, dragging, pageY: pageXY, startScrollBarTop });
+  stateRef.current = { scrollBarTop, dragging, pageY: pageXY, startScrollBarTop };
 
   const onThumbMouseDown = useMemoizedFn((e: React.MouseEvent | React.TouchEvent | TouchEvent) => {
     setDragging(true);
-    console.log('拖拽滚动条','onThumbMouseDown82')
+    /* 开始拖拽时，记录下鼠标距离document距离和此时滚动条已滚动的距离 */
     setPageXY(getPageXY(e, horizontal));
-    setStartTop(stateRef.current.top);
+    setStartScrollBarTop(stateRef.current.scrollBarTop);
 
     onStartMove();
     e.stopPropagation();
@@ -110,10 +117,10 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
   // }, [onThumbMouseDown]);
 
   // Pass to effect
-  const enableScrollRangeRef = React.useRef<number>();
-  enableScrollRangeRef.current = enableScrollRange;
-  const enableOffsetRangeRef = React.useRef<number>();
-  enableOffsetRangeRef.current = enableOffsetRange;
+  const dataListScrollRangeRef = React.useRef<number>();
+  dataListScrollRangeRef.current = dataListScrollRange;
+  const scrollBarScrollRangeRef = React.useRef<number>();
+  scrollBarScrollRangeRef.current = scrollBarScrollRange;
 
   React.useEffect(() => {
     if (dragging) {
@@ -124,32 +131,31 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
           dragging: stateDragging,
           /* 鼠标按在滚动条的那一刻，距离文档顶部的距离 */
           pageY: statePageY,
-          startTop: stateStartTop,
+          startScrollBarTop: stateStartScrollBarTop,
         } = stateRef.current;
         raf.cancel(moveRafId);
 
         if (stateDragging) {
-          const offset = getPageXY(e, horizontal) - statePageY;
-          console.log(offset,)
-          let newTop = stateStartTop;
+          const mouseOffset = getPageXY(e, horizontal) - statePageY;
+          let newScrollBarTop = stateStartScrollBarTop;
+          newScrollBarTop += mouseOffset;
 
-          // if (!isLTR && horizontal) {
-          //   newTop -= offset;
-          // } else {
-            newTop += offset;
-          // }
+          const stateDataListScrollRange = dataListScrollRangeRef.current;
+          const stateScrollBarScrollRange = scrollBarScrollRangeRef.current;
 
-          const tmpEnableScrollRange = enableScrollRangeRef.current;
-          const tmpEnableOffsetRange = enableOffsetRangeRef.current;
+          const ptg: number = stateScrollBarScrollRange ? newScrollBarTop / stateScrollBarScrollRange : 0;
 
-          const ptg: number = tmpEnableOffsetRange ? newTop / tmpEnableOffsetRange : 0;
+          /*
+          * scrollBarTop/scrollBarScrollRange=dataListTop/dataListScrollRange
+          * dataListTop=scrollBarTop*dataListScrollRange/scrollBarScrollRange
+          * */
 
-          let newScrollTop = Math.ceil(ptg * tmpEnableScrollRange);
-          newScrollTop = Math.max(newScrollTop, 0);
-          newScrollTop = Math.min(newScrollTop, tmpEnableScrollRange);
-
+          let dataListTop = Math.ceil(ptg * stateDataListScrollRange);
+          dataListTop = Math.max(dataListTop, 0);
+          dataListTop = Math.min(dataListTop, stateDataListScrollRange);
+          /* 算出scrollBar的偏移量后，通过requestAnimationFrame让dataList也要同步滚动 */
           moveRafId = raf(() => {
-            onScroll(newScrollTop, horizontal);
+            onScroll(dataListTop, horizontal);
           });
         }
       };
@@ -203,8 +209,8 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
 
     // Thumb
     thumbStyle.height = '100%';
-    thumbStyle.width = spinSize;
-    thumbStyle.left = top;
+    thumbStyle.width = scrollBarSize;
+    thumbStyle.left = scrollBarTop;
   } else {
     // Container
     containerStyle.width = 8;
@@ -214,8 +220,8 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
 
     // Thumb
     thumbStyle.width = '100%';
-    thumbStyle.height = spinSize;
-    thumbStyle.top = top;
+    thumbStyle.height = scrollBarSize;
+    thumbStyle.top = scrollBarTop;
   }
 
   return (
