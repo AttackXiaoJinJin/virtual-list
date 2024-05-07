@@ -30,7 +30,6 @@ export default function useHeights<T>(
   // 在requestAnimateFrame中更新rendered items高度
   const collectHeight=useMemoizedFn((sync = false)=> {
     cancelRaf();
-    console.log(instanceRef.current,'instanceRef33')
     // 已渲染数据dom的高度
     const doCollect = () => {
       instanceRef.current.forEach((element, key) => {
@@ -56,7 +55,6 @@ export default function useHeights<T>(
 
   const setInstanceRef=useMemoizedFn((item: T, instance: HTMLElement)=> {
     const key = getKey(item);
-    console.log('setInstanceRef59')
     if (instance) {
       instanceRef.current.set(key, instance);
       collectHeight();

@@ -7,7 +7,7 @@ export type InnerProps = Pick<React.HTMLAttributes<HTMLDivElement>, 'role' | 'id
 interface FillerProps {
   prefixCls?: string;
   /** Virtual filler height. Should be `count * itemMinHeight` */
-  height: number;
+  dataListHeight: number;
   /** Set offset of visible items. Should be the top of start item position */
   offsetY?: number;
   offsetX?: number;
@@ -22,7 +22,7 @@ interface FillerProps {
 function Filler({
                   prefixCls,
                   innerProps,
-                  height,
+                  dataListHeight,
                   offsetY,
                   offsetX,
                   children,
@@ -40,7 +40,7 @@ function Filler({
     if (offsetY !== undefined) {
       // Not set `width` since this will break `sticky: right`
       outerStyle = {
-        height,
+        height:dataListHeight,
         position: 'relative',
         overflow: 'hidden',
       };
@@ -63,7 +63,6 @@ function Filler({
         <ResizeObserver
           onResize={({ offsetHeight:renderedDataHeight }) => {
             // offsetHeight就是渲染的dom的height
-            console.log('collectHeight66')
             collectHeight();
           }}
         >

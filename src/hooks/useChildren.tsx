@@ -12,7 +12,6 @@ export default function useChildren<T>(
   children: RenderFunc<T>,
   getKey:GetKey<T>,
 ) {
-  console.log(start,end,'start15')
 
   /* 会多render一个item */
   // use reduce
@@ -27,7 +26,6 @@ export default function useChildren<T>(
     const key = getKey(item);
     return (
       <Item key={key} setRef={(ele) => {
-        console.log(item,'item28')
         setInstanceRef(item, ele)
       }}>
         {node}

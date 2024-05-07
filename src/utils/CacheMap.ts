@@ -13,7 +13,6 @@ class CacheMap {
   }
 
   set(key: React.Key, value: number) {
-    console.log(key,'key16')
     this.maps[key as string] = value;
     this.id += 1;
   }

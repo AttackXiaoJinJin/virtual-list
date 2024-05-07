@@ -49,7 +49,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
   const [dragging, setDragging] = React.useState(false);
   const [pageXY, setPageXY] = React.useState<number | null>(null);
   const [startTop, setStartTop] = React.useState<number | null>(null);
-
+  console.log(pageXY,'pageXY52')
   // ========================= Refs =========================
   const scrollbarRef = React.useRef<HTMLDivElement>();
   const thumbRef = React.useRef<HTMLDivElement>();
@@ -79,6 +79,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
 
   const onThumbMouseDown = useMemoizedFn((e: React.MouseEvent | React.TouchEvent | TouchEvent) => {
     setDragging(true);
+    console.log('拖拽滚动条','onThumbMouseDown82')
     setPageXY(getPageXY(e, horizontal));
     setStartTop(stateRef.current.top);
 
@@ -92,21 +93,21 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
   // React make event as passive, but we need to preventDefault
   // Add event on dom directly instead.
   // ref: https://github.com/facebook/react/issues/9809
-  React.useEffect(() => {
-    const onScrollbarTouchStart = (e: TouchEvent) => {
-      e.preventDefault();
-    };
-
-    const scrollbarEle = scrollbarRef.current;
-    const thumbEle = thumbRef.current;
-    scrollbarEle.addEventListener('touchstart', onScrollbarTouchStart);
-    thumbEle.addEventListener('touchstart', onThumbMouseDown);
-
-    return () => {
-      scrollbarEle.removeEventListener('touchstart', onScrollbarTouchStart);
-      thumbEle.removeEventListener('touchstart', onThumbMouseDown);
-    };
-  }, [onThumbMouseDown]);
+  // React.useEffect(() => {
+  //   const onScrollbarTouchStart = (e: TouchEvent) => {
+  //     e.preventDefault();
+  //   };
+  //
+  //   const scrollbarEle = scrollbarRef.current;
+  //   const thumbEle = thumbRef.current;
+  //   scrollbarEle.addEventListener('touchstart', onScrollbarTouchStart);
+  //   thumbEle.addEventListener('touchstart', onThumbMouseDown);
+  //
+  //   return () => {
+  //     scrollbarEle.removeEventListener('touchstart', onScrollbarTouchStart);
+  //     thumbEle.removeEventListener('touchstart', onThumbMouseDown);
+  //   };
+  // }, [onThumbMouseDown]);
 
   // Pass to effect
   const enableScrollRangeRef = React.useRef<number>();
@@ -121,6 +122,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
       const onMouseMove = (e: MouseEvent | TouchEvent) => {
         const {
           dragging: stateDragging,
+          /* 鼠标按在滚动条的那一刻，距离文档顶部的距离 */
           pageY: statePageY,
           startTop: stateStartTop,
         } = stateRef.current;
@@ -128,6 +130,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
 
         if (stateDragging) {
           const offset = getPageXY(e, horizontal) - statePageY;
+          console.log(offset,)
           let newTop = stateStartTop;
 
           // if (!isLTR && horizontal) {
@@ -179,6 +182,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
     visibility: null,
+    border:'1px red solid'
   };
 
   const thumbStyle: React.CSSProperties = {
@@ -187,6 +191,7 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
     borderRadius: 99,
     cursor: 'pointer',
     userSelect: 'none',
+    border:'1px green solid'
   };
 
   if (horizontal) {
@@ -235,9 +240,5 @@ const ScrollBar = React.forwardRef<ScrollBarRef, ScrollBarProps>((props, ref) =>
     </div>
   );
 });
-
-if (process.env.NODE_ENV !== 'production') {
-  ScrollBar.displayName = 'ScrollBar';
-}
 
 export default ScrollBar;

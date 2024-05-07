@@ -18,6 +18,7 @@ export default function useFrameWheel(
    */
   onWheelDelta: (offset: number, horizontal?: boolean) => void,
 ): [(e: WheelEvent) => void] {
+
   const offsetRef = useRef(0);
   const nextFrameRef = useRef<number>(null);
 
@@ -62,6 +63,7 @@ export default function useFrameWheel(
 
     // Wait for 2 frame to clean direction
     raf.cancel(wheelDirectionCleanRef.current);
+    // 合并两帧的滚动
     wheelDirectionCleanRef.current = raf(() => {
       wheelDirectionRef.current = null;
     }, 2);

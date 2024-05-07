@@ -121,10 +121,9 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
 
   // ================================= MISC =================================
   const useVirtual = !!(virtual !== false && height && itemHeight);
-  const containerHeight = React.useMemo(() =>  Object.values(heights.maps).reduce((total, curr) => total + curr, 0), [heights.maps]);
-  console.log(heights.id, heights.maps,'maps126')
+  const containerHeight = React.useMemo(() =>  Object.values(heights.maps).reduce((total, curr) => total + curr, 0), [heights]);
+  console.log(heights,'containerHeight125')
   const inVirtual = useVirtual && _data && (Math.max(itemHeight * _data.length, containerHeight) > height || Boolean(scrollWidth));
-  console.log(containerHeight,height,'containerHeight127')
   const mergedClassName = classNames(prefixCls, className);
   const data = _data || EMPTY_DATA;
   const componentRef = useRef<HTMLDivElement>();
@@ -171,7 +170,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   // ========================== Visible Calculation =========================
   const {
     /* 长长的数据列表的高度 */
-    scrollHeight,
+    dataListHeight,
     start,
     end,
     /* 就是移到可视容器外的item的个数+item高度，是累加的 */
@@ -184,7 +183,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     let endIndex: number;
     // 这里取长度，我理解就是取一个快照，这样即使data.length改变了也不受影响
     const dataLen = data.length;
-    console.log(offsetTop,'offsetTop187')
     for (let i = 0; i < dataLen; i += 1) {
       const item = data[i];
       const key = getKey(item);
@@ -206,7 +204,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
       /* fixme:算是优化？每个item是根据上一个item计算而来的，并不是每次都整体做计算 */
       itemTop = currentItemBottom;
     }
-    console.log(startIndex,endIndex,height,itemHeight,Math.ceil(height / itemHeight),'startIndex209')
+    console.log(`startIndex:${startIndex}`,`endIndex:${endIndex}`,`offsetTop:${offsetTop}`,'startIndex209')
     // fixme:实验下是什么情况，猜测是当滚动条已经移动到最底部后，再搜索忽然跳到中间数据时，会卡住
     if (startIndex === undefined) {
       startIndex = 0;
@@ -219,11 +217,10 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     }
     // endIndex可能会超出data.length，所以最后再来个兜底
     // ps:我觉得只有 endIndex = Math.ceil(height / itemHeight); 这种情况会超出，只在这种情况防止下是不是更精确点
-    console.log(endIndex,data.length,'endIndex220')
     endIndex = Math.min(endIndex + 1, data.length - 1);
 
     return {
-      scrollHeight: itemTop,
+      dataListHeight: itemTop,
       start: startIndex,
       end: endIndex,
       offsetY
@@ -239,7 +236,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     heights,
     itemHeight,
   ]);
-  console.log(end,scrollHeight,'end237')
   // rangeRef.current.start = start;
   // rangeRef.current.end = end;
 
@@ -247,7 +243,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   const [containerSize, setContainerSize] = React.useState({ width: 0, height });
 
   const onGetContainerSize: ResizeObserverProps['onResize'] =useMemoizedFn( (containerSize) => {
-    console.log(containerSize,'sizeInfo252')
     setContainerSize({
       width: containerSize.width || containerSize.offsetWidth,
       height: containerSize.height || containerSize.offsetHeight,
@@ -263,12 +258,12 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
     [containerSize.width, scrollWidth],
   );
   const verticalScrollBarSpinSize = React.useMemo(
-    () => getSpinSize(containerSize.height, scrollHeight),
-    [containerSize.height, scrollHeight],
+    () => getSpinSize(containerSize.height, dataListHeight),
+    [containerSize.height, dataListHeight],
   );
   // =============================== In Range ===============================
   // 记录滚动时，data容器和指定高度容器的最大可滚动高度
-  const maxScrollHeight = scrollHeight - height;
+  const maxScrollHeight = dataListHeight - height;
   const maxScrollHeightRef = useRef(maxScrollHeight);
   maxScrollHeightRef.current = maxScrollHeight;
   // 当列表不可滚动时不阻止滚动
@@ -352,6 +347,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   })
   /* function example(a: number, b: string): void {}，则 Parameters<typeof example> 的类型将是 [number, string] */
   const onWheelDelta: Parameters<typeof useFrameWheel>[3] = useEvent((offsetXY, fromHorizontal) => {
+    // 横向滚动
     if (fromHorizontal) {
       console.log(offsetXY,'offsetXY359')
       // Horizontal scroll no need sync virtual position
@@ -393,7 +389,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   useLayoutEffect(() => {
     const componentEle = componentRef.current;
     /* 为什么不劫持onScroll而是onWheel事件是因为我们为了不让白屏，是想滚动的时候，阻止滚动（阻止滚动条默认行为是e.preventDefault），等渲染item完成后，
-    * 通过scrollTop让滚动条移动到指定位置，但onScroll事件是滚动后才会触发UI事件，所以需要一个更前置的事件
+    * 通过scrollTop让滚动条移动到指定位置，但onScroll事件是滚动后才会触发UI事件，所以需要一个更前置的事件即onWheel
     *  */
     componentEle.addEventListener('wheel', onRawWheel);
 
@@ -462,7 +458,6 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   //   }
   // }, [start, end, data]);
 
-  console.log(end,'end455')
   // 已渲染出的item===================
   const renderedChildren = useChildren(
     data,
@@ -517,7 +512,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
             prefixCls={prefixCls}
             innerProps={innerProps}
 
-            height={scrollHeight}
+            dataListHeight={dataListHeight}
             offsetX={offsetX}
             offsetY={offsetY}
             collectHeight={collectHeight}
@@ -526,13 +521,13 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
           </Filler>
         </Component>
       </ResizeObserver>
-
-      {inVirtual && scrollHeight > height && (
+      {/* 纵向滚动条 */}
+      {inVirtual && dataListHeight > height && (
         <ScrollBar
           ref={verticalScrollBarRef}
           prefixCls={prefixCls}
           scrollOffset={offsetTop}
-          scrollRange={scrollHeight}
+          scrollRange={dataListHeight}
           onScroll={onScrollBar}
           onStartMove={onScrollbarStartMove}
           onStopMove={onScrollbarStopMove}
@@ -542,7 +537,7 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
           thumbStyle={styles?.verticalScrollBarThumb}
         />
       )}
-
+      {/* 横向滚动条 */}
       {inVirtual && scrollWidth > containerSize.width && (
         <ScrollBar
           ref={horizontalScrollBarRef}
