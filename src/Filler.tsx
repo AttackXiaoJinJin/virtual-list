@@ -82,6 +82,4 @@ function Filler({
     );
 }
 
-Filler.displayName = 'Filler';
-
 export default Filler;

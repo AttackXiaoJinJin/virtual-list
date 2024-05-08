@@ -162,9 +162,9 @@ export function RawList<T>(props: ListProps<T>, ref: React.Ref<ListRef>) {
   // Put ref here since the range is generate by follow
   // const rangeRef = useRef({ start: 0, end: data.length });
 
-  const diffItemRef = useRef<T>();
-  const [diffItem] = useDiffItem(data, getKey);
-  diffItemRef.current = diffItem;
+  // const diffItemRef = useRef<T>();
+  // const [diffItem] = useDiffItem(data, getKey);
+  // diffItemRef.current = diffItem;
 
   // ========================== Visible Calculation =========================
   const {
